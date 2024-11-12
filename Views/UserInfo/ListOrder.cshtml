@@ -1,0 +1,109 @@
+﻿@model CarSharing.Models.VehicleManagementModel
+
+@{
+    ViewBag.Title = "Danh sách chuyến";
+    ViewBag.ActionCurrent = "TripList";
+    ViewBag.ControllerCurrent = "UserInfo";
+}
+<div id="mycontent" class="pt-6 pb-5 pb-lg-0" style="min-height: 700px">
+    <div class="container">
+        <div class="row my-3">
+            @Html.Partial("_UserInfo")
+            <div class="col-lg-8 mt-3 mt-lg-0">
+                <div class="list-vehicletype">
+                    <select id="VehicleTypeId" name="VehicleTypeId" class="form-control" required>
+                        <option disabled selected>Chọn loại xe</option>
+                        @foreach (var vehicleType in Model.ListVehicleTypes)
+                        {
+                            <option value="@vehicleType.VehicleTypeId">@vehicleType.VehicleTypeName</option>
+                        }
+                    </select>
+                </div>
+                <div class="main-content mt-3">
+                    <div class="nav-select">
+                        <ul class="nav nav-tabs">
+                            <li class="nav-item">
+                                <button class="nav-link text-success active" data-status="1">Chờ duyệt</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-dark" data-status="2">Đã duyệt</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link text-dark" data-status="3">Đã hoàn tất</button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    @Html.Partial("_ListOrder")
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts
+{
+    <script>
+        $(document).ready(function () {
+            $("#VehicleTypeId").change(function () {
+                var selectedVehicleTypeId = $(this).val();
+                localStorage.setItem("selectedVehicleTypeId", selectedVehicleTypeId);
+
+                var savedStatus = localStorage.getItem("selectedStatus");
+
+                $.ajax({
+                    url: '/UserInfo/ListOrderType',
+                    type: 'GET',
+                    data: { status: savedStatus, vehicleTypeId: selectedVehicleTypeId },
+                    success: function (res) {
+                        $("div#list-booking").html(res);
+                        history.pushState({}, '', `/UserInfo/ListOrder?status=${savedStatus}&vehicleTypeId=${selectedVehicleTypeId}`);
+                    },
+                });
+            });
+
+            $(".nav-link").click(function () {
+                var selectedStatus = $(this).data("status");
+                localStorage.setItem("selectedStatus", selectedStatus);
+
+                var savedVehicleTypeId = localStorage.getItem("selectedVehicleTypeId");
+
+                $(".nav-link").removeClass("active text-success").addClass("text-dark");
+                $(this).removeClass("text-dark").addClass("text-success active");
+
+                $.ajax({
+                    url: '/UserInfo/ListOrderType',
+                    type: 'GET',
+                    data: { status: selectedStatus, vehicleTypeId: savedVehicleTypeId },
+                    success: function (res) {
+                        $("div#list-booking").html(res);
+                        history.pushState({}, '', `/UserInfo/ListOrder?status=${selectedStatus}&vehicleTypeId=${savedVehicleTypeId}`);
+                    },
+                });
+            });
+
+            var savedVehicleTypeId = localStorage.getItem("selectedVehicleTypeId");
+            var savedStatus = localStorage.getItem("selectedStatus");
+
+            if (savedVehicleTypeId) {
+                $("#VehicleTypeId").val(savedVehicleTypeId);
+            }
+
+            // Set initial active nav-link based on savedStatus
+            if (savedStatus) {
+                $(".nav-link").removeClass("active text-success").addClass("text-dark");
+                $(".nav-link[value='" + savedStatus + "']").removeClass("text-dark").addClass("text-success active");
+            }
+
+            // Set active nav-link on page load based on query parameters
+            var urlParams = new URLSearchParams(window.location.search);
+            var statusParam = urlParams.get("status");
+            if (statusParam && statusParam !== savedStatus) {
+                $(".nav-link").removeClass("active text-success").addClass("text-dark");
+                $(".nav-link[value='" + statusParam + "']").removeClass("text-dark").addClass("text-success active");
+                localStorage.setItem("selectedStatus", statusParam);
+            }
+        });
+
+    </script>
+}

@@ -1,0 +1,664 @@
+﻿@using PagedList;
+@using PagedList.Mvc;
+@model CarSharing.Models.VehicleManagementModel
+@using CarSharing.Helpers
+@using CarSharing.Controllers
+
+@{
+    ViewBag.Title = "Quản lý xe";
+    ViewBag.ActionCurrent = "Index";
+    ViewBag.ControllerCurrent = "Vehicle";
+    //var pager = Html.PagedListPager(Model.PagedVehicles, page => Url.Action("Index", new { page, currentFilter = ViewBag.CurrentFilter }), PagedListRenderOptions.ClassicPlusFirstAndLast);
+    var pager = Model.PagedVehicles;
+    int totalPages = (int)Math.Ceiling((double)pager.TotalItemCount / pager.PageSize);
+    int maxVisiblePages = 5;
+
+    int startPage = Math.Max(1, pager.PageNumber - maxVisiblePages / 2);
+    int endPage = Math.Min(startPage + maxVisiblePages - 1, totalPages);
+
+    int itemsPerPage = pager.PageSize;
+
+    if (endPage - startPage + 1 < maxVisiblePages)
+    {
+        startPage = Math.Max(1, endPage - maxVisiblePages + 1);
+    }
+}
+
+<div class="main-content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="table-wrapper">
+                <div class="table-title">
+                    <div class="row">
+                        <div class="col-sm-6 p-0 flex justify-content-lg-start justify-content-center">
+                            <h2 class="ml-lg-2">Quản lý xe</h2>
+                        </div>
+                        <div class="col-sm-6 p-0 flex justify-content-lg-end justify-content-center">
+                            <a href="#addVehicleModal" class="btn btn-success" data-toggle="modal">
+                                <i class="material-icons">&#xE147;</i>
+                                <span>Thêm</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th class="text-center">
+                                @Html.DisplayNameFor(model => model.Vehicle.ImageVehicle)
+                            </th>
+                            <th class="text-center">
+                                @Html.DisplayNameFor(model => model.Vehicle.VehicleName)
+                            </th>
+                            <th class="text-center">
+                                @Html.DisplayNameFor(model => model.Vehicle.User.FullName)
+                            </th>
+                            <th class="text-center">
+                                Địa chỉ
+                            </th>
+                            <th class="text-center">
+                                @Html.DisplayNameFor(model => model.Vehicle.VehiclePrice)
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var pagedVehicle in Model.PagedVehicles)
+                        {
+                            foreach (var vehicle in pagedVehicle.ListVehicles)
+                            {
+                                var districtName = vehicle.District.name;
+                                var provinceName = vehicle.District.Province.Name;
+                                <tr>
+                                    <td class="text-center">
+                                        <img src="@Url.Content(vehicle.ImageVehicle)" alt="Image" style="width: 120px; height: 110px;">
+                                    </td>
+                                    <td class="text-center">
+                                        @Html.DisplayFor(modelItem => vehicle.VehicleName)
+                                    </td>
+                                    <td class="text-center">
+                                        @Html.DisplayFor(modelItem => vehicle.User.FullName)
+                                    </td>
+                                    <td class="text-center">
+                                        @districtName, @provinceName
+                                    </td>
+                                    <td class="text-center">
+                                        @Html.Raw((vehicle.VehiclePrice / 1000).ToString("N0") + "K/ngày")
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex justify-content-center align-items-center">
+                                            <div class="mr-2">
+                                                <a href="#updateVehicleModal" class="edit" data-toggle="modal" data-id="@vehicle.VehicleId" data-name="@vehicle.VehicleName" data-content="@vehicle.Content" data-userid="@vehicle.UserId" data-typeid="@vehicle.VehicleBrand.VehicleTypeId" data-brandid="@vehicle.BrandId" data-variantid="@vehicle.VariantId" data-image="@vehicle.ImageVehicle" data-year="@vehicle.Year" data-registration="@vehicle.RegistrationNumber" data-price="@vehicle.VehiclePrice" data-districtid="@vehicle.CodeDistrict" data-provinceid="@vehicle.District.Province.Code">
+                                                    <i class="material-icons" data-toggle="tooltip" title="Sửa">&#xE254;</i>
+                                                </a>
+                                            </div>
+                                            <div class="mr-2">
+                                                <a href="@Url.Action("Detail", "Vehicle", new { area = "", id = vehicle.VehicleId })" class="details" data-toggle="tooltip">
+                                                    <i class="material-icons" data-toggle="tooltip" title="Chi tiết">&#xe88e;</i>
+                                                </a>
+                                            </div>
+                                            <div>
+                                                <a href="#deleteVehicleModal" class="delete" data-toggle="modal" data-id="@vehicle.VehicleId">
+                                                    <i class="material-icons" data-toggle="tooltip" title="Xóa">&#xE872;</i>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+
+                <div class="clearfix">
+                    <div class="hint-text">Hiển thị <b>@Model.PagedVehicles.Count</b> trong số <b>@Model.ListVehicles.Count</b></div>
+                    <ul class="pagination">
+                        @if (pager.HasPreviousPage)
+                        {
+                            <li class="page-item">
+                                <a href="@Url.Action("Index", new { page = 1, currentFilter = ViewBag.CurrentFilter })" class="page-link">Đầu</a>
+                            </li>
+                            <li class="page-item">
+                                <a href="@Url.Action("Index", new { page = pager.PageNumber - 1, currentFilter = ViewBag.CurrentFilter })" class="page-link">Trước</a>
+                            </li>
+                        }
+
+                        @for (int pageNumber = startPage; pageNumber <= endPage; pageNumber++)
+                        {
+                            <li class="page-item @(pager.PageNumber == pageNumber ? "active" : "")">
+                                <a href="@Url.Action("Index", new { page = pageNumber, currentFilter = ViewBag.CurrentFilter })" class="page-link">@pageNumber</a>
+                            </li>
+                        }
+
+                        @if (pager.HasNextPage)
+                        {
+                            <li class="page-item">
+                                <a href="@Url.Action("Index", new { page = pager.PageNumber + 1, currentFilter = ViewBag.CurrentFilter })" class="page-link">Tiếp</a>
+                            </li>
+                            <li class="page-item">
+                                <a href="@Url.Action("Index", new { page = totalPages, currentFilter = ViewBag.CurrentFilter })" class="page-link">Cuối</a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                @using (Html.BeginForm("Create", "Vehicle", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="modal fade" tabindex="-1" id="addVehicleModal" role="dialog">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Thêm xe</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                                @Html.HiddenFor(model => model.Province.Name, new { id = "SelectedProvinceNameCreate" })
+                                @Html.HiddenFor(model => model.District.name, new { id = "SelectedDistrictNameCreate" })
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleBrand.VehicleType.VehicleTypeName)
+                                                <select id="VehicleTypeIdCreate" name="VehicleTypeId" class="form-control mb-3" required>
+                                                    <option disabled selected>Chọn loại xe</option>
+                                                    @foreach (var vehicleType in Model.ListVehicleTypes)
+                                                    {
+                                                        <option value="@vehicleType.VehicleTypeId">@vehicleType.VehicleTypeName</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleVariant.VariantName)
+                                                <select id="Vehicle_VariantIdCreate" name="Vehicle.VariantId" class="form-control mb-3" required>
+                                                    <option disabled selected>Chọn loại xe trước</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleBrand.BrandName)
+                                                <select id="Vehicle_BrandIdCreate" name="Vehicle.BrandId" class="form-control mb-3" required>
+                                                    <option disabled selected>Chọn loại xe trước</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="row">
+                                                    <div class="col-7 col-md-8">
+                                                        @Html.LabelFor(model => model.Vehicle.ImageVehicle)
+                                                        <input type="file" id="ImageUpLoadCreate" class="mb-3 form-control border-0" name="ImageUpLoad" style="width: 120px" required />
+                                                    </div>
+                                                    <div class="col-5 col-md-4">
+                                                        <div id="imagePreviewCreate" style="width: 100px; height:100px"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.District.Province.Name)
+                                                <select name="Province.Code" class="form-control mb-3" id="ProvinceCodeCreate" required>
+                                                    <option disabled selected>Chọn tỉnh</option>
+                                                    @foreach (var province in Model.ListProvinces)
+                                                    {
+                                                        <option value="@province.Code" data-name="@province.Name">@province.Name</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.District.name)
+                                                <select name="District.code" class="form-control mb-3" id="DistrictCodeCreate" required>
+                                                    <option disabled selected>Chọn tỉnh trước</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleName)
+                                                @Html.TextBoxFor(model => model.Vehicle.VehicleName, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.Year)
+                                                @Html.TextBoxFor(model => model.Vehicle.Year, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.RegistrationNumber)
+                                                @Html.TextBoxFor(model => model.Vehicle.RegistrationNumber, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehiclePrice)
+                                                @Html.TextBoxFor(model => model.Vehicle.VehiclePrice, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-12">
+                                                @Html.LabelFor(model => model.Vehicle.Content)
+                                                <textarea class="form-control ckeditor-content mb-3" name="Vehicle.Content" id="inputContentCreate"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
+                                        <input type="submit" id="submitButton" value="Thêm" class="btn btn-success">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                @using (Html.BeginForm("Edit", "Vehicle", FormMethod.Post, new { enctype = "multipart/form-data" }))
+                {
+                    @Html.AntiForgeryToken()
+                    <div class="modal fade" tabindex="-1" id="updateVehicleModal" role="dialog">
+                        <div class="modal-dialog" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Cập nhật xe</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                                @Html.HiddenFor(model => model.Vehicle.VehicleId)
+                                @Html.HiddenFor(model => model.Vehicle.ImageVehicle)
+                                @Html.HiddenFor(model => model.Province.Name, new { id = "SelectedProvinceNameEdit" })
+                                @Html.HiddenFor(model => model.District.name, new { id = "SelectedDistrictNameEdit" })
+                                <div class="modal-body">
+                                    <div class="form-group">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleBrand.VehicleType.VehicleTypeName)
+                                                <select id="VehicleTypeIdEdit" name="VehicleTypeId" class="form-control mb-3" required>
+                                                    <option disabled selected>Chọn loại xe</option>
+                                                    @foreach (var vehicleType in Model.ListVehicleTypes)
+                                                    {
+                                                        <option value="@vehicleType.VehicleTypeId">@vehicleType.VehicleTypeName</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleVariant.VariantName)
+                                                <select id="Vehicle_VariantId" name="Vehicle.VariantId" class="form-control mb-3">
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleBrand.BrandName)
+                                                <select id="Vehicle_BrandId" name="Vehicle.BrandId" class="form-control mb-3">
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="row">
+                                                    <div class="col-7 col-md-8">
+                                                        @Html.LabelFor(model => model.Vehicle.ImageVehicle)
+                                                        <input type="file" id="ImageUpLoadEdit" class="mb-3 form-control border-0" name="ImageUpLoad" style="width: 120px" />
+                                                    </div>
+                                                    <div class="col-5 col-md-4">
+                                                        <div id="imagePreviewEdit" style="width: 100px; height:100px"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.District.Province.Name)
+                                                <select name="Province.Code" class="form-control mb-3" id="ProvinceCodeEdit" required="required">
+                                                    <option disabled selected>Chọn tỉnh</option>
+                                                    @foreach (var province in Model.ListProvinces)
+                                                    {
+                                                        <option value="@province.Code" data-name="@province.Name">@province.Name</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.District.name)
+                                                <select name="District.code" class="form-control mb-3" id="DistrictCodeEdit" required="required">
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehicleName)
+                                                @Html.TextBoxFor(model => model.Vehicle.VehicleName, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.Year)
+                                                @Html.TextBoxFor(model => model.Vehicle.Year, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.RegistrationNumber)
+                                                @Html.TextBoxFor(model => model.Vehicle.RegistrationNumber, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-6">
+                                                @Html.LabelFor(model => model.Vehicle.VehiclePrice)
+                                                @Html.TextBoxFor(model => model.Vehicle.VehiclePrice, new { @class = "form-control mb-3", required = "required" })
+                                            </div>
+                                            <div class="col-md-12">
+                                                @Html.LabelFor(model => model.Vehicle.Content)
+                                                <textarea class="form-control ckeditor-content mb-3" name="Vehicle.Content" id="inputContentEdit"></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
+                                        <input id="submitButton" type="submit" value="Cập nhật" class="btn btn-success">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <div class="modal fade" tabindex="-1" id="deleteVehicleModal" role="dialog">
+                    <div class="modal-dialog" role="document" style="max-width: 600px">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Xóa</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Bạn có muốn xóa xe này không?</p>
+                                <p class="text-warning"><small>Hành động này không được hoàn tác</small></p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy bỏ</button>
+                                <form id="deleteForm" action="@Url.Action("Delete", "Vehicle")" method="post" enctype="multipart/form-data">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" id="deleteId" value="" />
+                                    <button type="submit" class="btn btn-success">Xóa</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts
+{
+    <script>
+        $(document).ready(function () {
+            $('.edit').click(function () {
+                var vehicleId = $(this).data('id');
+                var name = $(this).data('name');
+                var content = $(this).data('content');
+                var vehicleTypeId = $(this).data('typeid');
+                var brandId = $(this).data('brandid');
+                var variantId = $(this).data('variantid');
+                var image = $(this).data('image');
+                var year = $(this).data('year');
+                var registration = $(this).data('registration');
+                var price = $(this).data('price');
+                var districtid = $(this).data('districtid');
+                var provinceid = $(this).data('provinceid');
+                var truncatedPrice = Math.floor(price);
+
+
+                if (image) {
+                    $("#imagePreviewEdit").html('<img style="width:100%; height:100%" src="' + image + '" alt="Xem trước hình ảnh" />');
+                }
+
+                $('#updateVehicleModal #Vehicle_VehicleId').val(vehicleId);
+                $('#updateVehicleModal #Vehicle_VehicleName').val(name);
+                $('#updateVehicleModal #VehicleTypeIdEdit').val(vehicleTypeId);
+                $('#updateVehicleModal #Vehicle_BrandId').val(brandId);
+                $('#updateVehicleModal #Vehicle_VariantId').val(variantId);
+                $('#updateVehicleModal #Vehicle_ImageVehicle').val(image);
+                $('#updateVehicleModal #Vehicle_Year').val(year);
+                $('#updateVehicleModal #Vehicle_RegistrationNumber').val(registration);
+                $('#updateVehicleModal #Vehicle_VehiclePrice').val(truncatedPrice);
+                $('#updateVehicleModal #ProvinceCodeEdit').val(provinceid);
+                $('#updateVehicleModal #DistrictCodeEdit').val(districtid);
+
+                CKEDITOR.instances.inputContentEdit.setData(content);
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetDistrics',
+                    type: 'GET',
+                    data: { provinceCode: provinceid },
+                    success: function (result) {
+                        var districtsDropdown = $("#DistrictCodeEdit");
+                        districtsDropdown.empty();
+
+                        districtsDropdown.prepend($('<option disabled selected></option>').text("Chọn quận/huyện"));
+
+                        $.each(result, function (index, district) {
+                            if (district.code === districtid) {
+                                districtsDropdown.append($('<option></option>').val(districtid).text(district.name).attr('data-name', district.name).attr('selected', 'selected'));
+                            } else {
+                                districtsDropdown.append($('<option></option>').val(district.code).text(district.name).attr('data-name', district.name));
+                            }
+                        });
+                    },
+                });
+                $.ajax({
+                    url: '/Admin/Vehicle/GetVariants',
+                    type: 'GET',
+                    data: { vehicleTypeId: vehicleTypeId },
+                    success: function (result) {
+                        var variantsDropdown = $("#Vehicle_VariantId");
+                        variantsDropdown.empty();
+
+                        variantsDropdown.prepend($('<option disabled selected></option>').text("Chọn loại hộp số"));
+
+                        $.each(result, function (index, variant) {
+                            if (variant.VariantId === variantId) {
+                                variantsDropdown.append($('<option></option>').val(variantId).text(variant.VariantName).attr('data-name', variant.VariantName).attr('selected', 'selected'));
+                            } else {
+                                variantsDropdown.append($('<option></option>').val(variant.variantId).text(variant.VariantName).attr('data-name', variant.VariantName));
+                            }
+                        });
+                    },
+                });
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetBrands',
+                    type: 'GET',
+                    data: { vehicleTypeId: vehicleTypeId },
+                    success: function (result) {
+                        var brandsDropdown = $("#Vehicle_BrandId");
+                        brandsDropdown.empty();
+
+                        brandsDropdown.prepend($('<option disabled selected></option>').text("Chọn hãng xe"));
+
+                        $.each(result, function (index, brand) {
+                            if (brand.BrandId === brandId) {
+                                brandsDropdown.append($('<option></option>').val(brandId).text(brand.BrandName).attr('data-name', brand.BrandName).attr('selected', 'selected'));
+                            } else {
+                                brandsDropdown.append($('<option></option>').val(brand.brandId).text(brand.BrandName).attr('data-name', brand.BrandName));
+                            }
+                        });
+                    },
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $('#updateVehicleModal #Vehicle_VariantId').change(function () {
+                var variantId = $(this).val();
+
+                $('#updateVehicleModal #Vehicle_VariantId').val(variantId);
+            });
+        });
+
+        $('.delete').click(function () {
+            var vehicleId = $(this).data('id');
+            $('#deleteId').val(vehicleId);
+        });
+
+        $(document).ready(function () {
+            $("#VehicleTypeIdCreate").change(function () {
+                var selectedVehicleTypeId = $(this).val();
+                $.ajax({
+                    url: '/Admin/Vehicle/GetVariants',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var variantsDropdown = $("#Vehicle_VariantIdCreate");
+                        variantsDropdown.empty();
+
+                         variantsDropdown.prepend($('<option disabled selected></option>').text("Chọn loại hộp số"));
+
+                        $.each(result, function (index, variant) {
+                            variantsDropdown.append($('<option></option>').val(variant.VariantId).text(variant.VariantName));
+                        });
+                    },
+                });
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetBrands',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var brandsDropdown = $("#Vehicle_BrandIdCreate");
+                        brandsDropdown.empty();
+
+                        brandsDropdown.prepend($('<option disabled selected></option>').text("Chọn hãng xe"));
+
+                        $.each(result, function (index, brand) {
+                            brandsDropdown.append($('<option></option>').val(brand.BrandId).text(brand.BrandName));
+                        });
+                    },
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $("#VehicleTypeIdEdit").change(function () {
+                var selectedVehicleTypeId = $(this).val();
+                $.ajax({
+                    url: '/Admin/Vehicle/GetVariants',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var variantsDropdown = $("#Vehicle_VariantId");
+                        variantsDropdown.empty();
+
+                        if (selectedVehicleTypeId !== '') {
+                            variantsDropdown.append($('<option disabled selected>Chọn loại hộp số</option>'));
+                        }
+
+                        $.each(result, function (index, variant) {
+                            variantsDropdown.append($('<option></option>').val(variant.VariantId).text(variant.VariantName).attr('data-name', variant.VariantName));
+                        });
+                    },
+                });
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetBrands',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var brandsDropdown = $("#Vehicle_BrandId");
+                        brandsDropdown.empty();
+
+                        if (selectedVehicleTypeId !== '') {
+                            brandsDropdown.append($('<option disabled selected>Chọn hãng xe</option>'));
+                        }
+
+                        $.each(result, function (index, brand) {
+                            brandsDropdown.append($('<option></option>').val(brand.BrandId).text(brand.BrandName).attr('data-name', brand.BrandName));
+                        });
+                    },
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $("#ProvinceCodeCreate").change(function () {
+                var selectedProvinceCode = $(this).val();
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetDistrics',
+                    type: 'GET',
+                    data: { provinceCode: selectedProvinceCode },
+                    success: function (result) {
+                        var districtsDropdown = $("#DistrictCodeCreate");
+                        districtsDropdown.empty();
+
+                        districtsDropdown.prepend($('<option disabled selected></option>').text("Chọn quận/huyện"));
+
+                        $.each(result, function (index, district) {
+                            districtsDropdown.append($('<option></option>').val(district.code).text(district.name).attr('data-name', district.name));
+                        });
+                    },
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $("#ProvinceCodeEdit").change(function () {
+                var selectedProvinceCode = $(this).val();
+
+                $.ajax({
+                    url: '/Admin/Vehicle/GetDistrics',
+                    type: 'GET',
+                    data: { provinceCode: selectedProvinceCode },
+                    success: function (result) {
+                        var districtsDropdown = $("#DistrictCodeEdit");
+                        districtsDropdown.empty();
+
+                        if (selectedProvinceCode !== '') {
+                            districtsDropdown.append($('<option disabled selected>Chọn quận/huyện</option>'));
+                        }
+
+                        $.each(result, function (index, district) {
+                            districtsDropdown.append($('<option></option>').val(district.code).text(district.name).attr('data-name', district.name));
+                        });
+                    },
+                });
+            });
+        });
+
+        $("#ProvinceCodeCreate").change(function () {
+            var selectedProvinceNameCreate = $("#ProvinceCodeCreate option:selected").data('name');
+            $("#SelectedProvinceNameCreate").val(selectedProvinceNameCreate);
+        });
+
+        $("#DistrictCodeCreate").change(function () {
+            var selectedDistrictNameCreate = $("#DistrictCodeCreate option:selected").data('name');
+            $("#SelectedDistrictNameCreate").val(selectedDistrictNameCreate);
+        });
+
+        $("#ProvinceCodeEdit").change(function () {
+            var selectedProvinceNameEdit = $("#ProvinceCodeEdit option:selected").data('name');
+            $("#SelectedProvinceNameEdit").val(selectedProvinceNameEdit);
+        });
+
+        $("#DistrictCodeEdit").change(function () {
+            var selectedDistrictNameEdit = $("#DistrictCodeEdit option:selected").data('name');
+            $("#SelectedDistrictNameEdit").val(selectedDistrictNameEdit);
+        });
+
+        $(document).ready(function () {
+            $("#ImageUpLoadCreate").change(function () {
+                var file = this.files[0];
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#imagePreviewCreate").html('<img style="width:100%; height:100%" src="' + e.target.result + '" alt="Xem trước hình ảnh" />');
+                };
+
+                reader.readAsDataURL(file);
+            });
+        });
+
+        $(document).ready(function () {
+            $("#ImageUpLoadEdit").change(function () {
+                var file = this.files[0];
+                var reader = new FileReader();
+
+                reader.onload = function (e) {
+                    $("#imagePreviewEdit").html('<img style="width:100%; height:100%" src="' + e.target.result + '" alt="Xem trước hình ảnh" />');
+                };
+
+                reader.readAsDataURL(file);
+            });
+        });
+
+
+        CKEDITOR.replace('inputContentCreate', {
+            filebrowserUploadUrl: '@Url.Action("UploadImage", "Vehicle", new { area = "Admin" })',
+            filebrowserImageUploadUrl: '@Url.Action("UploadImage", "Vehicle", new { area = "Admin" })'
+        });
+
+        CKEDITOR.replace('inputContentEdit', {
+            filebrowserUploadUrl: '@Url.Action("UploadImage", "Vehicle", new { area = "Admin" })',
+            filebrowserImageUploadUrl: '@Url.Action("UploadImage", "Vehicle", new { area = "Admin" })'
+        });
+    </script>
+}

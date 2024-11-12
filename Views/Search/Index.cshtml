@@ -1,0 +1,285 @@
+﻿@model CarSharing.Models.VehicleManagementModel
+
+@{
+    ViewBag.Title = "Tìm kiếm";
+    var pager = Model.PagedVehicles;
+    int totalPages = (int)Math.Ceiling((double)pager.TotalItemCount / pager.PageSize);
+    int maxVisiblePages = 5;
+
+    int startPage = Math.Max(1, pager.PageNumber - maxVisiblePages / 2);
+    int endPage = Math.Min(startPage + maxVisiblePages - 1, totalPages);
+
+    int itemsPerPage = pager.PageSize;
+
+    if (endPage - startPage + 1 < maxVisiblePages)
+    {
+        startPage = Math.Max(1, endPage - maxVisiblePages + 1);
+    }
+}
+<div id="myheadersearch" class="pt-5 pb-3 bg-white position-fixed start-0 end-0 shadow shadow-sm shadow-lg d-none d-xl-block" style="z-index: 9998;">
+    <hr class="text-dark" style="margin-top: 40px;">
+    <div class="container">
+        <div class="row w-100">
+            <div class="col-lg-12">
+                <div class="row">
+                    <div class="col-lg-1">
+
+                    </div>
+                    <div class="col-lg-4">
+                        <input id="input-search" class="form-control mb-3" type="text" placeholder="Nhập dòng xe, đời xe, thương hiệu...">
+                    </div>
+                    <div class="col-lg-3">
+                        <fieldset>
+                            <input class="text-center border w-100" type="datetime-local" id="dateTimePickerStart" name="dateTimePicker" onchange="updateEndDate()" style="height: 36px;">
+                        </fieldset>
+                    </div>
+                    <div class="col-lg-3">
+                        <fieldset>
+                            <input class="text-center border w-100" type="datetime-local" id="dateTimePickerEnd" name="dateTimePicker" onchange="updateEndDate()" style="height: 36px;">
+                        </fieldset>
+                    </div>
+                    <div class="col-lg-1">
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-12">
+                <div class="row">
+                    <div class="col-lg-2">
+                        <select id="VehicleTypeId" name="VehicleTypeId" class="form-select text-body-tertiary border-0" required>
+                            <option disabled selected>Chọn loại xe</option>
+                            @foreach (var vehicleType in Model.ListVehicleTypes)
+                            {
+                                <option value="@vehicleType.VehicleTypeId">@vehicleType.VehicleTypeName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <select id="Vehicle_VariantId" name="Vehicle.VariantId" class="form-select text-body-tertiary border-0" required>
+                            <option disabled selected>Chọn loại xe trước</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <select id="Vehicle_BrandId" name="Vehicle.BrandId" class="form-select text-body-tertiary border-0" required>
+                            <option disabled selected>Chọn loại xe trước</option>
+                        </select>
+                    </div>
+
+                    <div class="col-lg-2">
+                        <select name="Province.Code" class="form-select text-body-tertiary border-0" id="ProvinceCode" required>
+                            <option disabled selected>Chọn loại xe trước</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <select name="District.code" class="form-select text-body-tertiary border-0" id="DistrictCode" required>
+                            <option disabled selected>Chọn tỉnh trước</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <select class="form-select text-body-tertiary border-0">
+                            <option value="1">Từ thấp đến cao</option>
+                            <option value="2">Từ cao đến thấp</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="myheadersearch" class="pt-5 pb-3 bg-white position-fixed start-0 end-0 shadow shadow-sm shadow-lg d-block d-xxl-none mt-md-6" style="z-index: 9997;">
+    <hr class="text-dark">
+    <div class="container">
+        <div class="row">
+            <div class="col-11">
+                <div style="height: 50px;">
+                    <div class="p-2 bg-body-tertiary w-100 h-100">
+                        <div class="row">
+                            <div class="col-7 col-sm-8 col-md-9 col-lg-10">
+                                <input id="input-search" class="form-control mb-3" type="text" placeholder="Tìm kiếm...">
+                            </div>
+                            <div class="col-5 col-sm-4 col-md-3 col-lg-2">
+                                <a href="#">
+                                    <button class="btn btn-outline-success fs-6" type="submit">Tìm kiếm</button>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-1 d-flex justify-content-center align-items-center">
+                <button class="btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasWithBothOptions" aria-controls="offcanvasWithBothOptions">
+                    <i class="fa-solid fa-arrow-down-wide-short fs-3"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="offcanvas offcanvas-start position-fixed" style="z-index: 9999;" data-bs-scroll="true" tabindex="-1" id="offcanvasWithBothOptions" aria-labelledby="offcanvasWithBothOptionsLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="offcanvasWithBothOptionsLabel">Bộ lọc</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <span class="fw-lighter">Ngày nhận xe</span>
+        <fieldset>
+            <input class="text-center border w-100" type="datetime-local" id="dateTimePickerStart" name="dateTimePicker" onchange="updateEndDate()" style="height: 36px;">
+        </fieldset>
+
+        <span class="fw-lighter">Ngày trả xe</span>
+        <fieldset>
+            <input class="text-center border w-100" type="datetime-local" id="dateTimePickerEnd" name="dateTimePicker" onchange="updateEndDate()" style="height: 36px;">
+        </fieldset>
+
+        <select class="form-select text-body-tertiary border-0">
+            <option disabled selected>Chọn loại xe</option>
+            <option value="1">Ô tô</option>
+            <option value="2">Xe máy</option>
+            <option value="3">Xe đạp</option>
+        </select>
+        <select class="form-select text-body-tertiary border-0">
+            <option disabled selected>Chọn loại hộp số</option>
+            <option value="1">Số sàn</option>
+            <option value="2">Số tự động</option>
+        </select>
+        <select class="form-select text-body-tertiary border-0">
+            <option disabled selected>Chọn hãng xe</option>
+            <option value="1">Audi</option>
+            <option value="2">BMW</option>
+            <option value="3">Honda</option>
+        </select>
+        <select class="form-select text-body-tertiary border-0">
+            <option disabled selected>Chọn tỉnh</option>
+            <option value="1">TP. Hồ Chí Minh</option>
+            <option value="2">Hà Nội</option>
+            <option value="3">Nha Trang</option>
+        </select>
+        <select class="form-select text-body-tertiary border-0">
+            <option disabled selected>Chọn quận/huyện</option>
+            <option value="1">Thủ Đức</option>
+            <option value="2">Quận 1</option>
+            <option value="3">Quận 9</option>
+        </select>
+        <select class="form-select text-body-tertiary border-0">
+            <option value="1">Từ thấp đến cao</option>
+            <option value="2">Từ cao đến thấp</option>
+        </select>
+    </div>
+    <button type="button" class="btn btn-success d-block m-2">Tìm xe</button>
+</div>
+
+<div id="mycontent" class="pt-6 pt-xl-6" style="min-height: 700px">
+    <div class="container">
+        @Html.Partial("_ListVehicleSearch")
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Content/assets/js/search.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#VehicleTypeId").change(function () {
+                var selectedVehicleTypeId = $(this).val();
+                $.ajax({
+                    url: '/Search/GetVariants',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var variantsDropdown = $("#Vehicle_VariantId");
+                        variantsDropdown.empty();
+
+                        variantsDropdown.prepend($('<option disabled selected></option>').text("Chọn loại hộp số"));
+
+                        $.each(result, function (index, variant) {
+                            variantsDropdown.append($('<option></option>').val(variant.VariantId).text(variant.VariantName));
+                        });
+                    },
+                });
+
+                $.ajax({
+                    url: '/Search/GetBrands',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var brandsDropdown = $("#Vehicle_BrandId");
+                        brandsDropdown.empty();
+
+                        brandsDropdown.prepend($('<option disabled selected></option>').text("Chọn hãng xe"));
+
+                        $.each(result, function (index, brand) {
+                            brandsDropdown.append($('<option></option>').val(brand.BrandId).text(brand.BrandName));
+                        });
+                    },
+                });
+            });
+            
+
+            $("#ProvinceCode").change(function () {
+                var selectedProvinceCode = $(this).val();
+
+                $.ajax({
+                    url: '/Search/GetDistrics',
+                    type: 'GET',
+                    data: { provinceCode: selectedProvinceCode },
+                    success: function (result) {
+                        var districtsDropdown = $("#DistrictCode");
+                        districtsDropdown.empty();
+
+                        districtsDropdown.prepend($('<option disabled selected></option>').text("Chọn quận/huyện"));
+
+                        $.each(result, function (index, district) {
+                            districtsDropdown.append($('<option></option>').val(district.code).text(district.name).attr('data-name', district.name));
+                        });
+                    },
+                });
+            });
+        });
+
+        $(document).ready(function () {
+            $('#VehicleTypeId, #Vehicle_VariantId, #Vehicle_BrandId, #ProvinceCode, #DistrictCode').on('change', function () {
+                var vehicleTypeId = $('#VehicleTypeId').val();
+                var variantId = $('#Vehicle_VariantId').val();
+                var brandId = $('#Vehicle_BrandId').val();
+                var provinceCode = $('#ProvinceCode').val();
+                var districtCode = $('#DistrictCode').val();
+
+                $.ajax({
+                    url: '/Search/SearchVehicle',
+                    type: 'GET',
+                    data: {
+                        vehicleTypeId: vehicleTypeId,
+                        variantId: variantId,
+                        brandId: brandId,
+                        provinceCode: provinceCode,
+                        districtCode: districtCode
+                    },
+                    success: function (res) {
+                        $("div#filteredVehicleList").html(res);
+                        history.pushState({}, '', `/Search?currentFilter=&page=&vehicleTypeId=${vehicleTypeId}&variantId=${variantId}&brandId=${brandId}&provinceCode=${provinceCode}&districtCode=${districtCode}`);
+                    },
+                });
+            });
+
+            $("#VehicleTypeId").change(function () {
+                var selectedVehicleTypeId = $(this).val();
+                $.ajax({
+                    url: '/Home/GetProvinces',
+                    type: 'GET',
+                    data: { vehicleTypeId: selectedVehicleTypeId },
+                    success: function (result) {
+                        var provincesDropdown = $("#ProvinceCode");
+                        provincesDropdown.empty();
+
+                        provincesDropdown.prepend($('<option disabled selected></option>').text("Chọn tỉnh"));
+
+                        $.each(result, function (index, province) {
+                            provincesDropdown.append($('<option></option>').val(province.Code).text(province.Name));
+                        });
+                    },
+                });
+            });
+        });
+
+    </script>
+}
